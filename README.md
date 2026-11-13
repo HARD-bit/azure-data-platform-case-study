@@ -483,7 +483,7 @@ Cosa ho imparato:
 
 ---
 
-## 13. Competenze dimostrate
+## 13. Competenze
 
 | Area | Evidenza |
 |---|---|

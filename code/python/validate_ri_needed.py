@@ -1,24 +1,25 @@
-"""Validatore indipendente del fabbisogno di Reserved Instance ("Needed").
+"""Independent validator for the Reserved Instance "Needed" figure.
 
-Ricalcola fuori da Power BI la stessa catena di normalizzazione ISF del modello
-semantico, cosi' i numeri del report possono essere confrontati con un calcolo
-indipendente prima di ogni round di acquisto.
+Recomputes, outside Power BI, the same ISF normalization chain used by the semantic
+model, so the report's numbers can be cross-checked against an independent
+calculation before every purchasing round.
 
-Input (CSV):
-  vms.csv  : id, vmSize, location            (export Azure Resource Graph)
-  isf.csv  : ArmSkuName, InstanceSizeFlexibilityGroup, Ratio
-  registry.csv : ResID, Keep, AO, Deleted     (registro operativo)
+Inputs (CSV):
+  vms.csv      : id, vmSize, location            (Azure Resource Graph export)
+  isf.csv      : ArmSkuName, InstanceSizeFlexibilityGroup, Ratio
+  registry.csv : ResID, Keep, AO, Deleted        (operational registry)
 """
 import argparse
+
 import pandas as pd
 
 
 def build_base_sizes(isf: pd.DataFrame) -> pd.DataFrame:
-    """Per ogni gruppo ISF: VM piu' piccola (MinVMSize) e il suo ratio."""
+    """For each ISF group: the smallest VM (MinVMSize) and its ratio."""
     df = isf.dropna(subset=["Ratio"]).copy()
     df["Group"] = df["InstanceSizeFlexibilityGroup"].str.strip()
     df["Arm"] = df["ArmSkuName"].str.strip()
-    # tie-break deterministico: ordine alfabetico tra le SKU al ratio minimo
+    # deterministic tie-break: alphabetical order among SKUs at the minimum ratio
     base = (df.sort_values(["Group", "Ratio", "Arm"])
               .groupby("Group", as_index=False).first()
               .rename(columns={"Arm": "MinVMSize", "Ratio": "MinRatio"}))
@@ -32,17 +33,16 @@ def needed(vms, isf, registry) -> pd.DataFrame:
     out = vms.merge(isf[["ArmSkuName", "Ratio", "InstanceSizeFlexibilityGroup"]],
                     left_on="vmSize", right_on="ArmSkuName", how="left")
     out = out.merge(base, left_on="InstanceSizeFlexibilityGroup", right_on="Group", how="left")
-    out["RatioDivided"] = out["Ratio"] / out["MinRatio"]   # SKU senza match -> NaN -> ignorata dalla somma
+    out["RatioDivided"] = out["Ratio"] / out["MinRatio"]   # no ISF match -> NaN -> ignored by sum
 
-    # join case-insensitive sul Resource ID (il casing in ARM non e' affidabile)
+    # case-insensitive join on the Resource ID (ARM casing is not reliable)
     out["k"] = out["id"].str.lower()
     reg = registry.assign(k=registry["ResID"].str.lower())
     out = out.merge(reg[["k", "Keep", "AO", "Deleted"]], on="k", how="left")
 
-    eligible = (out["AO"].astype(str).str.upper().eq("TRUE")
-                & out["Deleted"].astype(str).str.upper().ne("YES")
-                & out["Keep"].isin(["Permanent", "AVD"]))
-    out["eligible"] = eligible
+    out["eligible"] = (out["AO"].astype(str).str.upper().eq("TRUE")
+                       & out["Deleted"].astype(str).str.upper().ne("YES")
+                       & out["Keep"].isin(["Permanent", "AVD"]))
     return out
 
 
@@ -59,7 +59,7 @@ def main():
                       "needed_all_fleet": g["RatioDivided"].sum()}), include_groups=False)
                   .reset_index())
     print(summary.to_string(index=False))
-    print(f"\nVM senza match ISF: {res['Ratio'].isna().sum()}")
+    print(f"\nVMs with no ISF match: {res['Ratio'].isna().sum()}")
 
 
 if __name__ == "__main__":

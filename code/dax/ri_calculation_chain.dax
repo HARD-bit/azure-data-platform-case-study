@@ -1,12 +1,12 @@
--- 1) Colonne calcolate sulla tabella inventario VM (VmInventory)
+-- 1) Calculated columns on the VM inventory table (VmInventory)
 Ratio        = LOOKUPVALUE(Isf[Ratio], Isf[ArmSkuName], VmInventory[vmSize])
 BaseSize     = LOOKUPVALUE(Isf[InstanceSizeFlexibilityGroup], Isf[ArmSkuName], VmInventory[vmSize])
 MinVMSize    = LOOKUPVALUE(BaseSizes[MinVMSize], BaseSizes[InstanceSizeFlexibilityGroup], VmInventory[BaseSize])
 MinRatio     = LOOKUPVALUE(BaseSizes[MinRatio], BaseSizes[MinVMSize], VmInventory[MinVMSize])
-RatioDivided = DIVIDE(VmInventory[Ratio], VmInventory[MinRatio])   -- "unità base" equivalenti
+RatioDivided = DIVIDE(VmInventory[Ratio], VmInventory[MinRatio])   -- equivalent "base units"
 
--- 2) Tabella calcolata: VM più piccola di ogni gruppo ISF.
---    Riga manuale per SQL Managed Instance: assente dal file ISF ma necessaria alla relazione.
+-- 2) Calculated table: the smallest VM of each ISF group.
+--    Manual row for SQL Managed Instance: absent from the ISF file but required by the relationship.
 BaseSizes =
 VAR Clean =
     FILTER(
@@ -29,9 +29,9 @@ RETURN
               "MinRatio", 0,
               "MinVMSize", "SQLMI_GP_Compute_Gen5"))
 
--- 3) Round di acquisto: fabbisogno vs acquistato, per SKU base e regione.
---    "Needed" conta solo le VM idonee (regola di business); "Needed (All Fleet)" resta visibile
---    così il divario non sparisce in silenzio.
+-- 3) Purchasing round: need vs. bought, per base SKU and region.
+--    "Needed" counts only eligible VMs (business rule); "Needed (All Fleet)" stays visible
+--    so the gap never disappears silently.
 RI_Round_Summary =
 VAR Combos = CROSSJOIN(VALUES(BaseSizes[MinVMSize]), VALUES(Regions[Regions]))
 RETURN

@@ -1,10 +1,10 @@
--- Savings Plan: uso, copertura, risparmio teorico
+-- Savings Plan: usage, coverage, theoretical savings
 SP Used Cost      = CALCULATE(SUM(Costs[EffectiveCost]), Costs[CommitmentDiscountType] = "Savings Plan", Costs[CommitmentDiscountStatus] = "Used")
 SP Unused Cost    = CALCULATE(SUM(Costs[EffectiveCost]), Costs[CommitmentDiscountType] = "Savings Plan", Costs[CommitmentDiscountStatus] = "Unused")
 VM On-Demand Cost = CALCULATE(SUM(Costs[EffectiveCost]), Costs[x_SkuMeterCategory] = "Virtual Machines", Costs[CommitmentDiscountType] = "")
 SP Coverage %     = DIVIDE([SP Used Cost], [SP Used Cost] + [VM On-Demand Cost])
 
--- Sconto medio EMPIRICO, pesato sul costo, calcolato sugli SP già usati (rispetta il filtro regione/sottoscrizione)
+-- Empirical, cost-weighted average discount over Savings Plans already in use (respects region/subscription filters)
 SP Average Discount % =
     DIVIDE(
         SUMX(FILTER(Costs, Costs[CommitmentDiscountStatus] = "Used"),
@@ -12,7 +12,7 @@ SP Average Discount % =
         CALCULATE(SUM(Costs[EffectiveCost]), Costs[CommitmentDiscountStatus] = "Used"))
 SP Theoretical Additional Savings = [SP Eligible On-Demand Cost] * [SP Average Discount %]
 
--- Data quality: "trust scorecard" da consultare prima di ogni round di acquisto
+-- Data quality: a "trust scorecard" to check before every purchasing round
 DQ Stale VMs =
     COUNTROWS(FILTER(Registry,
         Registry[Deleted] <> "YES"
@@ -20,4 +20,4 @@ DQ Stale VMs =
 DQ ARG VMs Not In Registry =
     COUNTROWS(FILTER(VmInventory,
         ISBLANK(LOOKUPVALUE(Registry[ResID], Registry[ResID], VmInventory[id]))))
-DQ Last Cost Date = MAX(Costs[ChargePeriodEnd])   -- se in ritardo di >2 giorni la pipeline si è fermata
+DQ Last Cost Date = MAX(Costs[ChargePeriodEnd])   -- more than 2 days behind means the pipeline has stopped

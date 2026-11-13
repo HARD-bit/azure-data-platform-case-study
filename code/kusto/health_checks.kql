@@ -1,18 +1,18 @@
-// Freschezza dei dati: ultima data di costo e ultima ingestione
+// Data freshness: latest charge date and latest ingestion
 Costs
 | summarize LastCharge = max(ChargePeriodStart), LastIngest = max(x_IngestionTime)
 
-// Righe per mese: un mese che "collassa" è il sintomo del bug di cleanup (vedi README)
+// Rows per month: a month that "collapses" is the symptom of the cleanup bug (see README)
 Costs
 | summarize Rows = count() by Month = startofmonth(ChargePeriodStart)
 | order by Month asc
 
-// Errori di ingestione nascosti dietro un'activity ADF che "riesce"
+// Ingestion errors hidden behind an ADF activity that "succeeds"
 .show ingestion failures
 | where FailedOn > ago(7d)
 | project FailedOn, Table, Details
 
-// Righe a costo zero per causa
+// Zero-cost rows by reason
 Costs
 | where EffectiveCost == 0
 | summarize Rows = count() by x_FreeReason

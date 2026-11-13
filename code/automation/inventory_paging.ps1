@@ -1,9 +1,9 @@
-# Runbook: inventario VM da Azure Resource Graph, paginato per sottoscrizione.
-# Lezioni incorporate:
-#  - Search-AzGraph -Skip accetta solo valori >= 1: con 0 genera un warning e il job risulta comunque "Completed"
-#  - un inventario VUOTO non deve sovrascrivere l'ultimo file buono né attivare la sincronizzazione a valle
+# Runbook: VM inventory from Azure Resource Graph, paged per subscription.
+# Lessons built in:
+#  - Search-AzGraph -Skip only accepts values >= 1: with 0 it raises a warning and the job still shows "Completed"
+#  - an EMPTY inventory must never overwrite the last good file nor trigger the downstream sync
 $all = @()
-foreach ($sub in Get-AzSubscription) {      # vede solo le sottoscrizioni su cui la Managed Identity ha Reader
+foreach ($sub in Get-AzSubscription) {      # only sees subscriptions where the Managed Identity has Reader
     $skip = 1
     while ($true) {
         $page = Search-AzGraph -Query $query -Subscription $sub.Id -First $pageSize -Skip $skip
@@ -15,6 +15,6 @@ foreach ($sub in Get-AzSubscription) {      # vede solo le sottoscrizioni su cui
         $skip += $pageSize
     }
 }
-if ($all.Count -eq 0) { throw "Inventario vuoto: abort, non sovrascrivo l'ultimo report valido." }   # guard-rail
+if ($all.Count -eq 0) { throw "Empty inventory: aborting, the last valid report is not overwritten." }   # guard-rail
 $all | ConvertTo-Json -Depth 5 | Set-Content vm_report.json
-# ... upload su ADLS e chiamata del trigger HTTP della Logic App solo dopo il guard-rail
+# ... upload to ADLS, then call the Logic App HTTP trigger only after the guard-rail

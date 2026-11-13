@@ -1,5 +1,5 @@
-# Roadmap IaC (sperimentale, non ancora applicata): il data lake come modulo riusabile.
-# Flusso previsto: terraform import -> terraform plan fino a "No changes".
+# IaC roadmap (experimental, not yet applied): the data lake as a reusable module.
+# Planned flow: terraform import -> terraform plan until "No changes".
 variable "resource_group_name"  { type = string }
 variable "location"             { type = string }
 variable "storage_account_name" { type = string }
@@ -12,7 +12,7 @@ resource "azurerm_storage_account" "lake" {
   account_tier             = "Standard"
   account_replication_type = "LRS"
   account_kind             = "StorageV2"
-  is_hns_enabled           = true # namespace gerarchico = ADLS Gen2
+  is_hns_enabled           = true # hierarchical namespace = ADLS Gen2
 }
 
 resource "azurerm_storage_container" "this" {

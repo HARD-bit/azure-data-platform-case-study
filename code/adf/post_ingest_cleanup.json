@@ -1,6 +1,6 @@
 {
   "name": "Post-Ingest Cleanup",
-  "description": "Rimuove i dati del mese già presenti, DOPO che la nuova ingestione è andata a buon fine.",
+  "description": "Removes the month's previously loaded data, ONLY after the new ingestion has succeeded.",
   "type": "AzureDataExplorerCommand",
   "dependsOn": [
     {

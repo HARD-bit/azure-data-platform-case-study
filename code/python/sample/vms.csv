@@ -1,0 +1,5 @@
+id,vmSize,location
+/subscriptions/s1/providers/microsoft.compute/virtualmachines/vm-a,Standard_D8s_v5,westeurope
+/subscriptions/s1/providers/microsoft.compute/virtualmachines/vm-b,Standard_D4s_v5,westeurope
+/subscriptions/s1/providers/microsoft.compute/virtualmachines/vm-c,Standard_D2s_v5,westeurope
+/subscriptions/s1/providers/microsoft.compute/virtualmachines/vm-d,Standard_B2ms,westeurope

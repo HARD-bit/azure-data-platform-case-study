@@ -1,0 +1,4 @@
+ResID,Keep,AO,Deleted
+/Subscriptions/S1/providers/Microsoft.Compute/virtualMachines/VM-A,Permanent,TRUE,NO
+/subscriptions/s1/providers/microsoft.compute/virtualmachines/vm-b,Permanent,TRUE,NO
+/subscriptions/s1/providers/microsoft.compute/virtualmachines/vm-c,Temporary,TRUE,NO

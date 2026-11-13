@@ -1,0 +1,46 @@
+-- 1) Colonne calcolate sulla tabella inventario VM (VmInventory)
+Ratio        = LOOKUPVALUE(Isf[Ratio], Isf[ArmSkuName], VmInventory[vmSize])
+BaseSize     = LOOKUPVALUE(Isf[InstanceSizeFlexibilityGroup], Isf[ArmSkuName], VmInventory[vmSize])
+MinVMSize    = LOOKUPVALUE(BaseSizes[MinVMSize], BaseSizes[InstanceSizeFlexibilityGroup], VmInventory[BaseSize])
+MinRatio     = LOOKUPVALUE(BaseSizes[MinRatio], BaseSizes[MinVMSize], VmInventory[MinVMSize])
+RatioDivided = DIVIDE(VmInventory[Ratio], VmInventory[MinRatio])   -- "unità base" equivalenti
+
+-- 2) Tabella calcolata: VM più piccola di ogni gruppo ISF.
+--    Riga manuale per SQL Managed Instance: assente dal file ISF ma necessaria alla relazione.
+BaseSizes =
+VAR Clean =
+    FILTER(
+        ADDCOLUMNS(Isf,
+            "G", TRIM(Isf[InstanceSizeFlexibilityGroup]),
+            "A", TRIM(Isf[ArmSkuName])),
+        NOT ISBLANK(Isf[Ratio]))
+VAR Groups = DISTINCT(SELECTCOLUMNS(Clean, "InstanceSizeFlexibilityGroup", [G]))
+VAR PerGroup =
+    ADDCOLUMNS(Groups,
+        "MinRatio",
+            VAR g = [InstanceSizeFlexibilityGroup]
+            RETURN MINX(FILTER(Clean, [G] = g), Isf[Ratio]),
+        "MinVMSize",
+            VAR g = [InstanceSizeFlexibilityGroup]
+            RETURN MINX(TOPN(1, FILTER(Clean, [G] = g), Isf[Ratio], ASC, [A], ASC), [A]))
+RETURN
+    UNION(PerGroup,
+          ROW("InstanceSizeFlexibilityGroup", "SQLMI_GP_Compute_Gen5",
+              "MinRatio", 0,
+              "MinVMSize", "SQLMI_GP_Compute_Gen5"))
+
+-- 3) Round di acquisto: fabbisogno vs acquistato, per SKU base e regione.
+--    "Needed" conta solo le VM idonee (regola di business); "Needed (All Fleet)" resta visibile
+--    così il divario non sparisce in silenzio.
+RI_Round_Summary =
+VAR Combos = CROSSJOIN(VALUES(BaseSizes[MinVMSize]), VALUES(Regions[Regions]))
+RETURN
+ADDCOLUMNS(Combos,
+    "Needed",
+        CALCULATE(SUM(VmInventory[RatioDivided]),
+            Registry[AO] = "TRUE",
+            Registry[Deleted] <> "YES",
+            Registry[Keep] IN {"Permanent", "AVD"}),
+    "Needed (All Fleet)", CALCULATE(SUM(VmInventory[RatioDivided])),
+    "Bought", CALCULATE(SUM(RiTransactions[quantity])),
+    "To Buy", [Needed] - [Bought])

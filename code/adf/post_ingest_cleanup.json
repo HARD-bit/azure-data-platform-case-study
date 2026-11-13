@@ -1,0 +1,11 @@
+{
+  "name": "Post-Ingest Cleanup",
+  "description": "Rimuove i dati del mese già presenti, DOPO che la nuova ingestione è andata a buon fine.",
+  "type": "AzureDataExplorerCommand",
+  "dependsOn": [
+    {
+      "activity": "Ingest Data",
+      "dependencyConditions": [ "Succeeded" ]
+    }
+  ]
+}
